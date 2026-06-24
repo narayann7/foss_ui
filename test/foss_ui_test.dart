@@ -1,0 +1,11 @@
+// ignore_for_file: unused_import
+import 'package:flutter_test/flutter_test.dart';
+import 'package:foss_ui/foss_ui.dart';
+
+void main() {
+  test('package imports cleanly', () {
+    // Smoke test: the barrel resolves. Replace with widget/golden tests
+    // as components land.
+    expect(true, isTrue);
+  });
+}
