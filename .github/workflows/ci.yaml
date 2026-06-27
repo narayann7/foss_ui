@@ -18,6 +18,9 @@ jobs:
     name: Format, analyze, test
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -44,7 +47,14 @@ jobs:
         run: flutter analyze --fatal-infos
 
       - name: Test with coverage
-        run: flutter test --coverage
+        run: sh scripts/dev/coverage.sh
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: coverage/lcov.info
+          fail_ci_if_error: false
 
   goldens:
     name: Goldens
