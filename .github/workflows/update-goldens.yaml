@@ -5,6 +5,8 @@ name: Update goldens
 # branch; it regenerates the references and commits them back to that branch.
 on:
   workflow_dispatch:
+  push:
+    branches: [feat/spinner]
 
 env:
   FLUTTER_VERSION: 3.41.9
