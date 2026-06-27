@@ -1,7 +1,7 @@
 # Dart/Flutter
 .dart_tool/
+.flutter-plugins-dependencies
 build/
-pubspec.lock
 .fvm/
 
 # Widgetbook generated use-case tree: an app artifact, regenerated on demand.

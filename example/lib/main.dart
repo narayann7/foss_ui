@@ -15,7 +15,7 @@ class WidgetbookApp extends StatelessWidget {
     // needs a newer Flutter than the pinned SDK allows. Add it on the bump.
     addons: [
       fossThemeAddon(),
-      TextScaleAddon(scales: const [1, 1.5, 2]),
+      TextScaleAddon(min: 1),
     ],
   );
 }
