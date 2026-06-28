@@ -52,13 +52,16 @@ class FossTextFieldStyle {
   /// Minimum box height in logical pixels; grows with text scale.
   final double? minHeight;
 
-  /// Style of the editable value and placeholder.
+  /// Style of the editable value and placeholder. Its color is ignored; text
+  /// and placeholder colors stay token-driven.
   final TextStyle? textStyle;
 
-  /// Style of the [FossTextField.label] above the box.
+  /// Style of the [FossTextField.label] above the box. Its color is ignored;
+  /// the label color stays token-driven.
   final TextStyle? labelStyle;
 
-  /// Style of the helper and error caption below the box.
+  /// Style of the helper and error caption below the box. Its color is ignored;
+  /// the caption color stays token-driven (error uses the destructive role).
   final TextStyle? helperStyle;
 
   /// Leading and trailing icon size in logical pixels.

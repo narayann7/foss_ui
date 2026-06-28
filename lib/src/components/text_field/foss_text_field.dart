@@ -4,8 +4,12 @@ import 'package:foss_ui/src/theme/theme.dart';
 
 part 'foss_text_field_style.dart';
 
-const double _iconSize = 16;
+const double _iconSize = 18;
 const double _disabledOpacity = 0.64;
+
+// Leading and trailing icon glyphs sit at 80% of the text color so they read as
+// quieter than the value.
+const double _affixOpacity = 0.8;
 const double _minTapTarget = 48;
 const double _ringWidth = 3;
 
@@ -25,11 +29,11 @@ const double _focusRingOpacity = 0.24;
 // Dark surfaces lift the fill by the input color at 32% of its alpha.
 const double _darkFillOpacity = 0.32;
 
-// coss tightens the label line height to 18px against the 16px base.
+// The label tightens its line height to 18px against the 16px base.
 const double _labelLineHeight = 18 / 16;
 
 // Inner top-lit rim at rest: a faint dark line in light mode, a faint white
-// highlight in dark mode (coss `before:shadow`).
+// highlight in dark mode.
 const Color _rimLight = Color(0x0A000000);
 const Color _rimDark = Color(0x0FFFFFFF);
 
@@ -153,12 +157,14 @@ class _FossTextFieldState extends State<FossTextField>
   late final TextSelectionGestureDetectorBuilder _gestureBuilder =
       TextSelectionGestureDetectorBuilder(delegate: this);
 
-  TextEditingController? _internalController;
-  FocusNode? _internalFocusNode;
-
-  TextEditingController get _controller =>
-      widget.controller ?? _internalController!;
-  FocusNode get _focusNode => widget.focusNode ?? _internalFocusNode!;
+  // The active controller and focus node, always resolved to a non-null value:
+  // the supplied one when given, otherwise an internally created one. The
+  // `_owned` references hold only what this state created, so dispose touches
+  // exactly those and never a caller's instance.
+  late TextEditingController _controller;
+  late FocusNode _focusNode;
+  TextEditingController? _ownedController;
+  FocusNode? _ownedFocusNode;
 
   @override
   GlobalKey<EditableTextState> get editableTextKey => _editableKey;
@@ -172,10 +178,10 @@ class _FossTextFieldState extends State<FossTextField>
   @override
   void initState() {
     super.initState();
-    if (widget.controller == null) {
-      _internalController = TextEditingController();
-    }
-    if (widget.focusNode == null) _internalFocusNode = FocusNode();
+    final controller = widget.controller;
+    _controller = controller ?? (_ownedController = TextEditingController());
+    final focusNode = widget.focusNode;
+    _focusNode = focusNode ?? (_ownedFocusNode = FocusNode());
     _focusNode.addListener(_onFocusChanged);
   }
 
@@ -183,24 +189,26 @@ class _FossTextFieldState extends State<FossTextField>
   void didUpdateWidget(FossTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
-      if (widget.controller == null) {
-        _internalController = TextEditingController(
+      _ownedController?.dispose();
+      final controller = widget.controller;
+      if (controller != null) {
+        _ownedController = null;
+        _controller = controller;
+      } else {
+        _controller = _ownedController = TextEditingController(
           text: oldWidget.controller?.text,
         );
-      } else {
-        _internalController?.dispose();
-        _internalController = null;
       }
     }
     if (oldWidget.focusNode != widget.focusNode) {
-      (oldWidget.focusNode ?? _internalFocusNode)?.removeListener(
-        _onFocusChanged,
-      );
-      if (widget.focusNode == null) {
-        _internalFocusNode ??= FocusNode();
+      _focusNode.removeListener(_onFocusChanged);
+      _ownedFocusNode?.dispose();
+      final focusNode = widget.focusNode;
+      if (focusNode != null) {
+        _ownedFocusNode = null;
+        _focusNode = focusNode;
       } else {
-        _internalFocusNode?.dispose();
-        _internalFocusNode = null;
+        _focusNode = _ownedFocusNode = FocusNode();
       }
       _focusNode.addListener(_onFocusChanged);
     }
@@ -211,8 +219,8 @@ class _FossTextFieldState extends State<FossTextField>
   @override
   void dispose() {
     _focusNode.removeListener(_onFocusChanged);
-    _internalController?.dispose();
-    _internalFocusNode?.dispose();
+    _ownedController?.dispose();
+    _ownedFocusNode?.dispose();
     super.dispose();
   }
 
@@ -235,12 +243,16 @@ class _FossTextFieldState extends State<FossTextField>
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: theme.spacing(2),
       children: [
+        // The editable carries the field's accessible name, so the visible
+        // label is excluded from semantics to avoid announcing it twice.
         if (widget.label case final label?)
-          Opacity(
-            opacity: widget.enabled ? 1 : _disabledOpacity,
-            child: Text(
-              label,
-              style: v.labelStyle.copyWith(color: v.labelColor),
+          ExcludeSemantics(
+            child: Opacity(
+              opacity: widget.enabled ? 1 : _disabledOpacity,
+              child: Text(
+                label,
+                style: v.labelStyle.copyWith(color: v.labelColor),
+              ),
             ),
           ),
         box,
@@ -264,8 +276,8 @@ class _FossTextFieldState extends State<FossTextField>
   }) {
     final colors = theme.colors;
 
-    // Border, ring, and shadow are derived from the field state. coss drops the
-    // resting shadow whenever the field is focused, invalid, or disabled.
+    // Border, ring, and shadow are derived from the field state. The resting
+    // shadow drops whenever the field is focused, invalid, or disabled.
     final Color borderColor;
     final Color? ringColor;
     if (hasError) {
@@ -327,13 +339,16 @@ class _FossTextFieldState extends State<FossTextField>
       );
     }
 
-    // At rest, a 1px inner top-lit rim (coss `before:shadow`); dropped under
-    // the same states as the shadow. Rim radius is the inner edge (radius - 1).
+    // At rest, a 1px inner rim; dropped under the same states as the shadow.
+    // Dark lights the top edge with a white highlight, light darkens the bottom
+    // edge. Rim radius is the inner edge (radius - 1).
     if (showShadow) {
+      final dark = _isDark(colors);
       content = CustomPaint(
         foregroundPainter: _RimPainter(
-          color: _isDark(colors) ? _rimDark : _rimLight,
+          color: dark ? _rimDark : _rimLight,
           radius: v.borderRadius - 1,
+          topLit: dark,
         ),
         child: content,
       );
@@ -361,6 +376,12 @@ class _FossTextFieldState extends State<FossTextField>
       readOnly: !widget.enabled,
       rendererIgnoresPointer: true,
       style: v.textStyle.copyWith(color: v.textColor),
+      // The base type's line-height adds leading; distributed proportionally
+      // (the default) most of it lands above the glyph and drops it below
+      // center, so it is split evenly to center the text in the box.
+      textHeightBehavior: const TextHeightBehavior(
+        leadingDistribution: TextLeadingDistribution.even,
+      ),
       cursorColor: colors.foreground,
       backgroundCursorColor: colors.mutedForeground,
       selectionColor: colors.ring.withValues(alpha: _focusRingOpacity),
@@ -414,16 +435,17 @@ class _FossTextFieldState extends State<FossTextField>
 _FieldVisuals _resolve(FossThemeData theme, FossTextFieldSize size) {
   final c = theme.colors;
 
-  // coss trims 1px from the horizontal padding so the text aligns across the
-  // 1px border.
+  // Horizontal inset from the spacing scale: sm sits tighter than md and lg.
+  // The border paints over the edge without consuming layout, so the inset is
+  // the padding alone and needs no border compensation.
   final (minHeight, padX) = switch (size) {
-    FossTextFieldSize.sm => (30.0, theme.spacing(2.5) - 1),
-    FossTextFieldSize.md => (34.0, theme.spacing(3) - 1),
-    FossTextFieldSize.lg => (38.0, theme.spacing(3) - 1),
+    FossTextFieldSize.sm => (30.0, theme.spacing(2.5)),
+    FossTextFieldSize.md => (34.0, theme.spacing(3)),
+    FossTextFieldSize.lg => (38.0, theme.spacing(3)),
   };
 
-  // Dark adds a faint lift over the surface (coss `dark:bg-input/32`): the input
-  // color at 32% of its alpha, composited to opaque. Light is the bare surface.
+  // Dark adds a faint lift over the surface: the input color at 32% of its
+  // alpha, composited to opaque. Light is the bare surface.
   final fill = _isDark(c)
       ? Color.alphaBlend(
           c.input.withValues(alpha: c.input.a * _darkFillOpacity),
@@ -442,7 +464,7 @@ _FieldVisuals _resolve(FossThemeData theme, FossTextFieldSize size) {
     padding: EdgeInsets.symmetric(horizontal: padX),
     minHeight: minHeight,
     textStyle: theme.typography.base,
-    // coss tightens the label line height (`text-base/4.5` = 18px).
+    // The label uses the tightened 18px line height.
     labelStyle: theme.typography.base.medium.copyWith(height: _labelLineHeight),
     helperStyle: theme.typography.xs,
     iconSize: _iconSize,
@@ -516,17 +538,24 @@ class _FieldVisuals {
   final double gap;
   final List<BoxShadow> shadow;
 
-  IconThemeData get iconTheme =>
-      IconThemeData(size: iconSize, color: textColor);
+  IconThemeData get iconTheme => IconThemeData(
+    size: iconSize,
+    color: textColor.withValues(alpha: textColor.a * _affixOpacity),
+  );
 }
 
-/// Paints a 1px top-lit rim inside the field: brightest along the top edge,
-/// fading to nothing by the middle. The resting inner highlight.
+/// Paints a 1px rim inside the field: brightest along one edge, fading to
+/// nothing by the middle. [topLit] lights the top edge; otherwise the bottom.
 class _RimPainter extends CustomPainter {
-  const _RimPainter({required this.color, required this.radius});
+  const _RimPainter({
+    required this.color,
+    required this.radius,
+    required this.topLit,
+  });
 
   final Color color;
   final double radius;
+  final bool topLit;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -536,7 +565,7 @@ class _RimPainter extends CustomPainter {
       Radius.circular(radius),
     );
     final shader = LinearGradient(
-      begin: Alignment.topCenter,
+      begin: topLit ? Alignment.topCenter : Alignment.bottomCenter,
       end: Alignment.center,
       colors: [color, color.withValues(alpha: 0)],
     ).createShader(rect);
@@ -549,7 +578,9 @@ class _RimPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RimPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.radius != radius;
+      oldDelegate.color != color ||
+      oldDelegate.radius != radius ||
+      oldDelegate.topLit != topLit;
 }
 
 /// Paints the focus ring: a superellipse outset just past the field edge,

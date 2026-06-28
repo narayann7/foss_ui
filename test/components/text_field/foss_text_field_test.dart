@@ -236,4 +236,87 @@ void main() {
       expect(leading.dx, greaterThan(trailing.dx));
     });
   });
+
+  group('FossTextField lifecycle', () {
+    testWidgets('dropping an external controller keeps its text', (
+      tester,
+    ) async {
+      final controller = TextEditingController(text: 'kept');
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(host(FossTextField(controller: controller)));
+      expect(find.text('kept'), findsOneWidget);
+
+      // Same position, controller removed: the field creates an internal one
+      // seeded with the outgoing text.
+      await tester.pumpWidget(host(const FossTextField()));
+
+      expect(find.text('kept'), findsOneWidget);
+    });
+
+    testWidgets('swapping the focus node keeps focus tracking', (tester) async {
+      final node = FocusNode();
+      addTearDown(node.dispose);
+      await tester.pumpWidget(host(FossTextField(focusNode: node)));
+
+      // Remove the external node; the field falls back to an internal one and
+      // must rewire the focus listener to it. Entering text focuses that node,
+      // which should flip the border to the ring token.
+      await tester.pumpWidget(host(const FossTextField()));
+      await tester.enterText(find.byType(EditableText), 'x');
+      await tester.pump();
+
+      expect(_borderColor(tester), FossColors.light.ring);
+    });
+  });
+
+  group('FossTextField dark', () {
+    testWidgets('lifts the fill above the bare surface', (tester) async {
+      await tester.pumpWidget(
+        host(
+          const FossTheme(data: FossThemeData.dark, child: FossTextField()),
+        ),
+      );
+
+      expect(_decoration(tester).color, isNot(FossColors.dark.background));
+    });
+  });
+
+  group('FossTextField shadow', () {
+    testWidgets('rests with a shadow, drops it on focus', (tester) async {
+      final node = FocusNode();
+      addTearDown(node.dispose);
+      await tester.pumpWidget(host(FossTextField(focusNode: node)));
+      expect(_decoration(tester).shadows, isNotEmpty);
+
+      node.requestFocus();
+      await tester.pump();
+
+      expect(_decoration(tester).shadows, isEmpty);
+    });
+
+    testWidgets('error drops the resting shadow', (tester) async {
+      await tester.pumpWidget(host(const FossTextField(errorText: 'Bad')));
+
+      expect(_decoration(tester).shadows, isEmpty);
+    });
+
+    testWidgets('disabled drops the resting shadow', (tester) async {
+      await tester.pumpWidget(host(const FossTextField(enabled: false)));
+
+      expect(_decoration(tester).shadows, isEmpty);
+    });
+  });
+
+  group('FossTextField obscured', () {
+    testWidgets('obscureText hides the entered value', (tester) async {
+      await tester.pumpWidget(host(const FossTextField(obscureText: true)));
+
+      await tester.enterText(find.byType(EditableText), 'secret');
+      await tester.pump();
+
+      final editable = tester.widget<EditableText>(find.byType(EditableText));
+      expect(editable.obscureText, isTrue);
+      expect(editable.controller.text, 'secret');
+    });
+  });
 }
