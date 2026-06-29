@@ -1,8 +1,10 @@
 name: PR Lint
 
 on:
-  pull_request_target:
-    types: [opened, edited, synchronize, reopened]
+  # Temporarily disabled; run manually from the Actions tab.
+  # pull_request_target:
+  #   types: [opened, edited, synchronize, reopened]
+  workflow_dispatch:
 
 permissions:
   pull-requests: read

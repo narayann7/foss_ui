@@ -1,10 +1,12 @@
 name: CI
 
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
+  # Temporarily disabled; run manually from the Actions tab.
+  # pull_request:
+  #   branches: [main]
+  # push:
+  #   branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
