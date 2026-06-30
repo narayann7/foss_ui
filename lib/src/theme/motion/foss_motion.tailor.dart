@@ -14,7 +14,9 @@ mixin _$FossMotionTailorMixin on ThemeExtension<FossMotion> {
   Duration get caretBlink;
   Duration get spinner;
   Duration get overlay;
+  Duration get drawer;
   Duration get toast;
+  Duration get progress;
 
   @override
   FossMotion copyWith({
@@ -22,14 +24,18 @@ mixin _$FossMotionTailorMixin on ThemeExtension<FossMotion> {
     Duration? caretBlink,
     Duration? spinner,
     Duration? overlay,
+    Duration? drawer,
     Duration? toast,
+    Duration? progress,
   }) {
     return FossMotion(
       skeleton: skeleton ?? this.skeleton,
       caretBlink: caretBlink ?? this.caretBlink,
       spinner: spinner ?? this.spinner,
       overlay: overlay ?? this.overlay,
+      drawer: drawer ?? this.drawer,
       toast: toast ?? this.toast,
+      progress: progress ?? this.progress,
     );
   }
 
@@ -41,7 +47,9 @@ mixin _$FossMotionTailorMixin on ThemeExtension<FossMotion> {
       caretBlink: t < 0.5 ? caretBlink : other.caretBlink,
       spinner: t < 0.5 ? spinner : other.spinner,
       overlay: t < 0.5 ? overlay : other.overlay,
+      drawer: t < 0.5 ? drawer : other.drawer,
       toast: t < 0.5 ? toast : other.toast,
+      progress: t < 0.5 ? progress : other.progress,
     );
   }
 
@@ -57,7 +65,9 @@ mixin _$FossMotionTailorMixin on ThemeExtension<FossMotion> {
             ) &&
             const DeepCollectionEquality().equals(spinner, other.spinner) &&
             const DeepCollectionEquality().equals(overlay, other.overlay) &&
-            const DeepCollectionEquality().equals(toast, other.toast));
+            const DeepCollectionEquality().equals(drawer, other.drawer) &&
+            const DeepCollectionEquality().equals(toast, other.toast) &&
+            const DeepCollectionEquality().equals(progress, other.progress));
   }
 
   @override
@@ -68,7 +78,9 @@ mixin _$FossMotionTailorMixin on ThemeExtension<FossMotion> {
       const DeepCollectionEquality().hash(caretBlink),
       const DeepCollectionEquality().hash(spinner),
       const DeepCollectionEquality().hash(overlay),
+      const DeepCollectionEquality().hash(drawer),
       const DeepCollectionEquality().hash(toast),
+      const DeepCollectionEquality().hash(progress),
     );
   }
 }
