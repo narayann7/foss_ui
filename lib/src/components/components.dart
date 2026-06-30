@@ -18,6 +18,7 @@ export 'progress/foss_progress.dart';
 export 'radio/foss_radio.dart';
 export 'slider/foss_slider.dart';
 export 'spinner/foss_spinner.dart';
+export 'switch/foss_switch.dart';
 export 'text_field/foss_text_field.dart';
 export 'toast/foss_toast.dart';
 export 'toast/foss_toast_controller.dart';
