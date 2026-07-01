@@ -27,6 +27,8 @@ right-to-left layout, and three layers of tests. That bar is written down in
 - [x] **Radio group** : single choice from a set.
 - [x] **Switch** : toggle control.
 - [x] **Slider** : pick a value from a range.
+- [x] **Select** : single or multiple choice from a dropdown.
+- [x] **Combobox and autocomplete** : filterable select, single or multi.
 
 ### Layout and surfaces
 
@@ -59,8 +61,6 @@ tooltip, and toast above, so what is left builds on top of it.
 - [ ] **Skeleton** : shimmer placeholder for loading content.
 - [ ] **Popover** : floating panel anchored to a trigger.
 - [ ] **Accordion and collapsible** : expandable sections.
-- [ ] **Select** : single choice from a dropdown.
-- [ ] **Combobox and autocomplete** : filterable select.
 - [ ] **Calendar and date picker** : date selection.
 - [ ] **Table and pagination** : tabular data.
 - [ ] **Number field** : numeric input with steppers.
